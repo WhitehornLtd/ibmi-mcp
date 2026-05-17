@@ -6,13 +6,7 @@ ibmi-mcp is an MCP server that lets AI Agents like Claude interact with IBM i th
 
 ## Installation
 
-Install from PyPI:
-
-```bash
-pip install ibmi-mcp
-```
-
-Then register it with Claude Code:
+Install and register with Claude Code:
 
 ```bash
 claude mcp add ibmi-5250 -- uvx ibmi-mcp
