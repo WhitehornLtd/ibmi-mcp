@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ibmi-mcp"
+version = "0.1.0"
+description = "MCP server providing 5250 terminal access to IBM i systems"
+readme = "README.md"
+license = "BSD-2-Clause"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=1.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+]
+
+[project.scripts]
+ibmi-mcp = "ibmi_mcp:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ibmi_mcp"]
