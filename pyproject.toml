@@ -7,7 +7,7 @@ name = "ibmi-mcp"
 version = "1.0.0"
 description = "MCP server providing 5250 terminal access to IBM i systems"
 readme = "README.md"
-license = "BSD-2-Clause"
+license = {text = "BSD-2-Clause"}
 requires-python = ">=3.10"
 dependencies = [
     "mcp>=1.0.0",
