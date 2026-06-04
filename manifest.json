@@ -1,0 +1,128 @@
+{
+  "manifest_version": "0.4",
+  "name": "ibmi-mcp",
+  "display_name": "IBM i 5250 Terminal",
+  "version": "1.0.0",
+  "description": "Give your AI agent terminal access to IBM i systems via TN5250",
+  "long_description": "ibmi-mcp lets AI agents like Claude interact with IBM i the same way a human would through a 5250 green-screen terminal. It provides full TN5250 emulation with auto-signon, function key support, local editing, structured screen data, and configurable EBCDIC codepage translation.",
+  "author": {
+    "name": "Whitehorn Ltd. Co.",
+    "url": "https://whitehorn.ltd"
+  },
+  "license": "BSD-2-Clause",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/WhitehornLtd/ibmi-mcp"
+  },
+  "homepage": "https://whitehorn.ltd",
+  "support": "https://github.com/WhitehornLtd/ibmi-mcp/issues",
+  "keywords": [
+    "ibm-i",
+    "as400",
+    "iseries",
+    "5250",
+    "tn5250",
+    "green-screen",
+    "terminal",
+    "midrange",
+    "rpg",
+    "cobol"
+  ],
+  "server": {
+    "type": "uv",
+    "entry_point": "src/ibmi_mcp/__main__.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": ["run", "${__dirname}/src/ibmi_mcp/__main__.py"],
+      "env": {}
+    }
+  },
+  "tools": [
+    {
+      "name": "connect",
+      "description": "Connect to an IBM i system via TN5250"
+    },
+    {
+      "name": "disconnect",
+      "description": "Disconnect the active session"
+    },
+    {
+      "name": "read_screen",
+      "description": "Read the current screen content and input fields"
+    },
+    {
+      "name": "send_keys",
+      "description": "Type text into the current input field"
+    },
+    {
+      "name": "send_key",
+      "description": "Send a function/attention key (Enter, F1-F24, PageUp, PageDown, Tab, etc.)"
+    },
+    {
+      "name": "set_cursor",
+      "description": "Position the cursor at a specific row and column"
+    }
+  ],
+  "user_config": {
+    "IBMI_HOST": {
+      "type": "string",
+      "title": "IBM i Hostname",
+      "description": "IBM i hostname or IP address",
+      "required": true
+    },
+    "IBMI_PORT": {
+      "type": "string",
+      "title": "TN5250 Port",
+      "description": "TN5250 port number",
+      "default": "23",
+      "required": false
+    },
+    "IBMI_SSL": {
+      "type": "boolean",
+      "title": "Enable TLS",
+      "description": "Enable TLS encryption for the connection",
+      "default": false,
+      "required": false
+    },
+    "IBMI_USER": {
+      "type": "string",
+      "title": "Username",
+      "description": "Username for auto-signon",
+      "required": false,
+      "sensitive": true
+    },
+    "IBMI_PASSWORD": {
+      "type": "string",
+      "title": "Password",
+      "description": "Password for auto-signon",
+      "required": false,
+      "sensitive": true
+    },
+    "IBMI_DEVICE_NAME": {
+      "type": "string",
+      "title": "Device Name",
+      "description": "Virtual device name",
+      "required": false
+    },
+    "IBMI_CODEPAGE": {
+      "type": "string",
+      "title": "EBCDIC Codepage",
+      "description": "EBCDIC codepage for character translation",
+      "default": "cp037",
+      "required": false
+    },
+    "IBMI_TERMINAL_TYPE": {
+      "type": "string",
+      "title": "Terminal Type",
+      "description": "5250 terminal type",
+      "default": "IBM-3179-2",
+      "required": false
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "python": ">=3.10.0 <4"
+    }
+  }
+}
