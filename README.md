@@ -12,9 +12,17 @@ Install and register with Claude Code:
 claude mcp add ibmi-5250 -- uvx ibmi-mcp
 ```
 
-## Configuration
+This requires the connection environment variables to be set in your shell profile. You can also pass them inline with `-e` flags:
 
-Configure the connection using environment variables:
+```bash
+claude mcp add ibmi-5250 \
+  -e IBMI_HOST=myhost.example.com \
+  -e IBMI_USER=myuser \
+  -e IBMI_PASSWORD=mypassword \
+  -- uvx ibmi-mcp
+```
+
+## Configuration
 
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
@@ -26,6 +34,10 @@ Configure the connection using environment variables:
 | `IBMI_DEVICE_NAME` | Virtual device name | No | — |
 | `IBMI_CODEPAGE` | EBCDIC codepage | No | cp037 |
 | `IBMI_TERMINAL_TYPE` | Terminal type | No | IBM-3179-2 |
+| `IBMI_SSH_TUNNEL` | Tunnel TN5250 through SSH | No | false |
+| `IBMI_SSH_PORT` | SSH port for file transfer and tunneling | No | 22 |
+| `IBMI_SSH_KEY_FILE` | Path to SSH private key | No | — |
+| `IBMI_SSH_KNOWN_HOSTS` | Path to known_hosts file | No | — |
 
 When `IBMI_USER` and `IBMI_PASSWORD` are set, ibmi-mcp will automatically sign on when it detects a login screen after connecting.
 
@@ -39,10 +51,14 @@ When `IBMI_USER` and `IBMI_PASSWORD` are set, ibmi-mcp will automatically sign o
 | `send_keys` | Type text into the current input field |
 | `send_key` | Send a function/attention key (Enter, F1-F24, PageUp, PageDown, Tab, etc.) |
 | `set_cursor` | Position the cursor at a specific row and column |
+| `upload_file` | Upload a file from the local system to the IBM i |
+| `download_file` | Download a file from the IBM i to the local system |
 
 ## Features
 
 - **Auto-signon** — Automatically detects sign-on screens and logs in with configured credentials
+- **File transfer** — Upload and download files to/from the IBM i IFS via SFTP
+- **SSH tunneling** — Tunnel TN5250 through SSH when port 23 is not directly reachable
 - **Full key support** — Enter, F1-F24, PageUp, PageDown, Tab, Backtab, Clear, Help, Print, Attn
 - **Local editing** — Backspace, Delete, Field Exit, Home, and End handled locally for responsive editing
 - **Structured screen data** — Returns screen text, cursor position, and input field metadata

@@ -2,9 +2,9 @@
   "manifest_version": "0.4",
   "name": "ibmi-mcp",
   "display_name": "IBM i 5250 Terminal",
-  "version": "1.0.0",
-  "description": "Give your AI agent terminal access to IBM i systems via TN5250",
-  "long_description": "ibmi-mcp lets AI agents like Claude interact with IBM i the same way a human would through a 5250 green-screen terminal. It provides full TN5250 emulation with auto-signon, function key support, local editing, structured screen data, and configurable EBCDIC codepage translation.",
+  "version": "1.1.0",
+  "description": "Give your AI agent terminal and file transfer access to IBM i systems",
+  "long_description": "ibmi-mcp lets AI agents like Claude interact with IBM i the same way a human would through a 5250 green-screen terminal. It provides full TN5250 emulation with auto-signon, function key support, local editing, structured screen data, and configurable EBCDIC codepage translation. It also supports file transfer to and from the IBM i IFS via SFTP.",
   "author": {
     "name": "Whitehorn Ltd. Co.",
     "url": "https://whitehorn.ltd"
@@ -61,6 +61,14 @@
     {
       "name": "set_cursor",
       "description": "Position the cursor at a specific row and column"
+    },
+    {
+      "name": "upload_file",
+      "description": "Upload a file from the local system to the IBM i"
+    },
+    {
+      "name": "download_file",
+      "description": "Download a file from the IBM i to the local system"
     }
   ],
   "user_config": {
@@ -116,6 +124,32 @@
       "title": "Terminal Type",
       "description": "5250 terminal type",
       "default": "IBM-3179-2",
+      "required": false
+    },
+    "IBMI_SSH_TUNNEL": {
+      "type": "boolean",
+      "title": "SSH Tunnel",
+      "description": "Tunnel TN5250 traffic through SSH. Enable when port 23 is not directly reachable.",
+      "default": false,
+      "required": false
+    },
+    "IBMI_SSH_PORT": {
+      "type": "string",
+      "title": "SSH Port",
+      "description": "SSH port for file transfer and tunneling",
+      "default": "22",
+      "required": false
+    },
+    "IBMI_SSH_KEY_FILE": {
+      "type": "string",
+      "title": "SSH Key File",
+      "description": "Path to SSH private key for file transfer authentication",
+      "required": false
+    },
+    "IBMI_SSH_KNOWN_HOSTS": {
+      "type": "string",
+      "title": "SSH Known Hosts",
+      "description": "Path to known_hosts file. Leave empty to use system defaults.",
       "required": false
     }
   },

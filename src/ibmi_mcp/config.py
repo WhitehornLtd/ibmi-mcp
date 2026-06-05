@@ -17,3 +17,8 @@ class IBMiConfig(BaseSettings):
     device_name: str = ""
     codepage: str = "cp037"
     terminal_type: str = "IBM-3179-2"
+
+    ssh_port: int = 22
+    ssh_key_file: str = ""
+    ssh_known_hosts: str = ""
+    ssh_tunnel: bool = False
