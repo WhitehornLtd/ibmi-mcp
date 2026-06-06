@@ -3,6 +3,7 @@
 #   https://whitehorn.ltd
 # ========================================================================
 
+import asyncio
 import logging
 
 from ibmi_mcp.tn5250.constants import (
@@ -59,20 +60,23 @@ class TelnetNegotiator:
 
         Once a non-IAC byte is seen, it's pushed back for read_frame() to consume.
         """
-        while True:
-            b = await self._stream._read_raw_byte()
-            if b == 0xFF:
-                b2 = await self._stream._read_raw_byte()
-                if b2 in (DO, DONT, WILL, WONT):
-                    opt = await self._stream._read_raw_byte()
-                    await self._handle_option(b2, opt)
-                elif b2 == SB:
-                    await self._stream._read_subnegotiation()
+        try:
+            while True:
+                b = await self._stream._read_raw_byte()
+                if b == 0xFF:
+                    b2 = await self._stream._read_raw_byte()
+                    if b2 in (DO, DONT, WILL, WONT):
+                        opt = await self._stream._read_raw_byte()
+                        await self._handle_option(b2, opt)
+                    elif b2 == SB:
+                        await self._stream._read_subnegotiation()
+                    else:
+                        logger.debug(f"IAC {b2:#x} during negotiation")
                 else:
-                    logger.debug(f"IAC {b2:#x} during negotiation")
-            else:
-                self._stream._pushback.append(b)
-                return
+                    self._stream._pushback.append(b)
+                    return
+        except asyncio.IncompleteReadError:
+            raise ConnectionError("5250 connection closed during telnet negotiation")
 
     async def _handle_option(self, cmd: int, opt: int) -> None:
         if cmd == DO:

@@ -374,6 +374,9 @@ class Tn5250Session:
                 if self._pending_query:
                     await self._send_query_reply()
                     self._pending_query = False
+        except asyncio.IncompleteReadError:
+            self._keyboard_locked = False
+            raise ConnectionError("5250 connection closed unexpectedly")
         except asyncio.TimeoutError:
             self._keyboard_locked = False
             self._timed_out = True

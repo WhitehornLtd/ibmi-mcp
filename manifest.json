@@ -1,10 +1,10 @@
 {
   "manifest_version": "0.4",
   "name": "ibmi-mcp",
-  "display_name": "IBM i 5250 Terminal",
+  "display_name": "IBM i",
   "version": "1.1.0",
-  "description": "Give your AI agent terminal and file transfer access to IBM i systems",
-  "long_description": "ibmi-mcp lets AI agents like Claude interact with IBM i the same way a human would through a 5250 green-screen terminal. It provides full TN5250 emulation with auto-signon, function key support, local editing, structured screen data, and configurable EBCDIC codepage translation. It also supports file transfer to and from the IBM i IFS via SFTP.",
+  "description": "Give your AI agent terminal, file transfer, and SQL access to IBM i systems",
+  "long_description": "ibmi-mcp lets AI agents like Claude interact with IBM i through 5250 terminal emulation, SFTP file transfer, and SQL queries. It provides full TN5250 emulation with auto-signon, function key support, local editing, structured screen data, configurable EBCDIC codepage translation, IFS file transfer via SFTP, and SQL access via ODBC.",
   "author": {
     "name": "Whitehorn Ltd. Co.",
     "url": "https://whitehorn.ltd"
@@ -26,7 +26,10 @@
     "terminal",
     "midrange",
     "rpg",
-    "cobol"
+    "cobol",
+    "sql",
+    "odbc",
+    "sftp"
   ],
   "server": {
     "type": "uv",
@@ -69,6 +72,10 @@
     {
       "name": "download_file",
       "description": "Download a file from the IBM i to the local system"
+    },
+    {
+      "name": "execute_sql",
+      "description": "Execute a SQL statement on the IBM i"
     }
   ],
   "user_config": {
@@ -129,8 +136,27 @@
     "IBMI_SSH_TUNNEL": {
       "type": "boolean",
       "title": "SSH Tunnel",
-      "description": "Tunnel TN5250 traffic through SSH. Enable when port 23 is not directly reachable.",
+      "description": "Tunnel traffic through SSH. Enable when the IBM i is not directly reachable.",
       "default": false,
+      "required": false
+    },
+    "IBMI_SSH_TUNNEL_5250": {
+      "type": "boolean",
+      "title": "SSH Tunnel (5250)",
+      "description": "Override SSH tunnel setting for TN5250 only.",
+      "required": false
+    },
+    "IBMI_DB_SCHEMA": {
+      "type": "string",
+      "title": "Default SQL Schema",
+      "description": "Default schema/library for SQL queries.",
+      "required": false
+    },
+    "IBMI_PORT_SQL": {
+      "type": "string",
+      "title": "SQL Port",
+      "description": "IBM i database host server port for SQL connections.",
+      "default": "8471",
       "required": false
     },
     "IBMI_SSH_PORT": {

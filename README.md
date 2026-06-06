@@ -1,8 +1,8 @@
 # ibmi-mcp
 
-Give your AI Agent terminal access to your IBM i system via TN5250.
+Give your AI Agent terminal, file transfer, and SQL access to your IBM i system.
 
-ibmi-mcp is an MCP server that lets AI Agents like Claude interact with IBM i the same way a human would through a 5250 green-screen terminal.
+ibmi-mcp is an MCP server that lets AI Agents like Claude interact with IBM i through 5250 terminal emulation, SFTP file transfer, and SQL queries.
 
 ## Installation
 
@@ -22,22 +22,47 @@ claude mcp add ibmi-5250 \
   -- uvx ibmi-mcp
 ```
 
+### SQL support (optional)
+
+SQL access requires the IBM i Access ODBC driver and `pyodbc`:
+
+```bash
+pip install pyodbc
+```
+
+On macOS, install the ODBC driver via Homebrew:
+
+```bash
+brew install unixodbc
+brew tap ibm/iaccess https://public.dhe.ibm.com/software/ibmi/products/odbc/macos/tap/
+brew install ibm-iaccess
+```
+
+The 5250 terminal and file transfer features work without these dependencies.
+
 ## Configuration
+
+Global settings apply to all protocols. Protocol-specific overrides (e.g., `IBMI_HOST_SQL`) take precedence when set.
 
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
 | `IBMI_HOST` | IBM i hostname or IP | Yes | — |
+| `IBMI_USER` | Username | No | — |
+| `IBMI_PASSWORD` | Password | No | — |
 | `IBMI_PORT` | TN5250 port | No | 23 |
-| `IBMI_SSL` | Enable TLS | No | false |
-| `IBMI_USER` | Username for auto-signon | No | — |
-| `IBMI_PASSWORD` | Password for auto-signon | No | — |
+| `IBMI_SSL` | Enable TLS for TN5250 | No | false |
 | `IBMI_DEVICE_NAME` | Virtual device name | No | — |
 | `IBMI_CODEPAGE` | EBCDIC codepage | No | cp037 |
 | `IBMI_TERMINAL_TYPE` | Terminal type | No | IBM-3179-2 |
-| `IBMI_SSH_TUNNEL` | Tunnel TN5250 through SSH | No | false |
-| `IBMI_SSH_PORT` | SSH port for file transfer and tunneling | No | 22 |
+| `IBMI_SSH_TUNNEL` | Tunnel traffic through SSH | No | false |
+| `IBMI_SSH_TUNNEL_5250` | Override tunnel for 5250 only | No | — |
+| `IBMI_SSH_PORT` | SSH port | No | 22 |
 | `IBMI_SSH_KEY_FILE` | Path to SSH private key | No | — |
 | `IBMI_SSH_KNOWN_HOSTS` | Path to known_hosts file | No | — |
+| `IBMI_PORT_SQL` | SQL database host server port | No | 8471 |
+| `IBMI_DB_SCHEMA` | Default schema/library for SQL | No | — |
+
+Protocol-specific host, user, and password overrides are also available: `IBMI_HOST_5250`, `IBMI_HOST_SFTP`, `IBMI_HOST_SQL`, `IBMI_USER_5250`, `IBMI_USER_SFTP`, `IBMI_USER_SQL`, `IBMI_PASSWORD_5250`, `IBMI_PASSWORD_SFTP`, `IBMI_PASSWORD_SQL`.
 
 When `IBMI_USER` and `IBMI_PASSWORD` are set, ibmi-mcp will automatically sign on when it detects a login screen after connecting.
 
@@ -53,16 +78,20 @@ When `IBMI_USER` and `IBMI_PASSWORD` are set, ibmi-mcp will automatically sign o
 | `set_cursor` | Position the cursor at a specific row and column |
 | `upload_file` | Upload a file from the local system to the IBM i |
 | `download_file` | Download a file from the IBM i to the local system |
+| `execute_sql` | Execute a SQL statement on the IBM i |
 
 ## Features
 
 - **Auto-signon** — Automatically detects sign-on screens and logs in with configured credentials
+- **SQL access** — Execute SQL statements via ODBC (requires IBM i Access ODBC driver)
 - **File transfer** — Upload and download files to/from the IBM i IFS via SFTP
 - **SSH tunneling** — Tunnel TN5250 through SSH when port 23 is not directly reachable
+- **Connection resilience** — Automatic reconnect and retry on connection loss
 - **Full key support** — Enter, F1-F24, PageUp, PageDown, Tab, Backtab, Clear, Help, Print, Attn
 - **Local editing** — Backspace, Delete, Field Exit, Home, and End handled locally for responsive editing
 - **Structured screen data** — Returns screen text, cursor position, and input field metadata
 - **Configurable codepage** — Supports EBCDIC codepage translation (default: CP037)
+- **Per-protocol configuration** — Override host, credentials, and settings per protocol (5250, SFTP, SQL)
 
 ## License
 

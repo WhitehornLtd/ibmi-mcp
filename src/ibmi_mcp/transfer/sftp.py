@@ -25,17 +25,18 @@ class SftpTransport(FileTransport):
         self._tunnel_listener: asyncssh.SSHListener | None = None
 
     async def connect(self) -> None:
+        cfg = self._config.resolve_sftp()
         kwargs: dict = {
-            "host": self._config.host,
-            "port": self._config.ssh_port,
-            "username": self._config.user,
+            "host": cfg["host"],
+            "port": cfg["port"],
+            "username": cfg["user"],
             "known_hosts": self._config.ssh_known_hosts or None,
         }
 
         if self._config.ssh_key_file:
             kwargs["client_keys"] = [self._config.ssh_key_file]
-        if self._config.password:
-            kwargs["password"] = self._config.password
+        if cfg["password"]:
+            kwargs["password"] = cfg["password"]
 
         self._conn = await asyncssh.connect(**kwargs)
         self._sftp = await self._conn.start_sftp_client()

@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "ibmi-mcp"
 version = "1.1.0"
-description = "MCP server providing 5250 terminal access to IBM i systems"
+description = "MCP server providing 5250 terminal, file transfer, and SQL access to IBM i systems"
 readme = "README.md"
 license = {text = "BSD-2-Clause"}
 requires-python = ">=3.10"
@@ -15,6 +15,9 @@ dependencies = [
     "pydantic-settings>=2.0.0",
     "asyncssh>=2.14.0",
 ]
+
+[project.optional-dependencies]
+sql = ["pyodbc>=5.0.0"]
 
 [project.scripts]
 ibmi-mcp = "ibmi_mcp:main"

@@ -3,11 +3,21 @@
 #   https://whitehorn.ltd
 # ========================================================================
 
+import asyncio
+from functools import partial
+
 from mcp.server.fastmcp import FastMCP
 
 from ibmi_mcp.config import IBMiConfig
 from ibmi_mcp.transfer import FileTransport, get_transport
 from ibmi_mcp.tn5250.session import Tn5250Session
+
+try:
+    import pyodbc
+
+    _has_pyodbc = True
+except ImportError:
+    _has_pyodbc = False
 
 mcp = FastMCP("ibmi-5250")
 
@@ -41,6 +51,9 @@ def _screen_response() -> dict:
     return data
 
 
+# ── 5250 tools ───────────────────────────────────────────────────────────
+
+
 @mcp.tool()
 async def connect(host: str = "", port: int = 0, use_ssl: bool | None = None) -> dict:
     """Connect to an IBM i system via TN5250.
@@ -57,17 +70,18 @@ async def connect(host: str = "", port: int = 0, use_ssl: bool | None = None) ->
     if _session is not None and _session.state.value != "disconnected":
         await _session.disconnect()
 
-    resolved_host = host or _config.host
+    cfg = _config.resolve_5250()
+    resolved_host = host or cfg["host"]
     if not resolved_host:
         return {"error": "No host specified. Set IBMI_HOST or pass host parameter."}
 
-    resolved_port = port or _config.port
+    resolved_port = port or cfg["port"]
     resolved_ssl = use_ssl if use_ssl is not None else _config.ssl
 
     connect_host = resolved_host
     connect_port = resolved_port
 
-    if _config.ssh_tunnel:
+    if _config.use_tunnel_5250():
         transport = await _ensure_transport()
         if isinstance(transport, dict):
             return transport
@@ -85,8 +99,8 @@ async def connect(host: str = "", port: int = 0, use_ssl: bool | None = None) ->
         terminal_type=_config.terminal_type,
         device_name=_config.device_name,
         codepage=_config.codepage,
-        username=_config.user,
-        password=_config.password,
+        username=cfg["user"],
+        password=cfg["password"],
     )
 
     try:
@@ -244,9 +258,12 @@ async def set_cursor(row: int, col: int) -> dict:
         if err:
             return err
         _session.move_cursor(row, col)
-        data = _session.screen.get_screen_data()
+        data = _screen_response()
         data["warning"] = _RECONNECT_WARNING
         return data
+
+
+# ── File transfer tools ──────────────────────────────────────────────────
 
 
 async def _ensure_transport() -> FileTransport | dict:
@@ -254,9 +271,10 @@ async def _ensure_transport() -> FileTransport | dict:
     if _transport is not None and _transport.is_connected:
         return _transport
 
-    if not _config.host:
+    cfg = _config.resolve_sftp()
+    if not cfg["host"]:
         return {"error": "No host configured. Set IBMI_HOST."}
-    if not _config.user:
+    if not cfg["user"]:
         return {"error": "Credentials required. Set IBMI_USER and IBMI_PASSWORD."}
 
     _transport = get_transport(_config)
@@ -300,8 +318,106 @@ async def download_file(remote_path: str, local_path: str) -> dict:
     return await transport.download(remote_path, local_path)
 
 
+# ── SQL tools ────────────────────────────────────────────────────────────
+
+
+def _odbc_quote(value: str) -> str:
+    if any(c in value for c in ";{}"):
+        return "{" + value.replace("}", "}}") + "}"
+    return value
+
+
+def _build_connection_string() -> str:
+    cfg = _config.resolve_sql()
+    parts = [
+        "DRIVER={IBM i Access ODBC Driver}",
+        f"SYSTEM={_odbc_quote(cfg['host'])}",
+        f"UID={_odbc_quote(cfg['user'])}",
+        f"PWD={_odbc_quote(cfg['password'])}",
+    ]
+    if cfg["schema"]:
+        parts.append(f"DBQ={_odbc_quote(cfg['schema'])}")
+    parts.append("CCSID=1208")
+    parts.append("TRIMCHAR=1")
+    return ";".join(parts) + ";"
+
+
+def _do_execute_sql(conn_str: str, statement: str) -> dict:
+    conn = None
+    try:
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        cursor.execute(statement)
+
+        if cursor.description:
+            columns = [col[0] for col in cursor.description]
+            rows = [list(row) for row in cursor.fetchall()]
+            return {
+                "columns": columns,
+                "rows": rows,
+                "row_count": len(rows),
+            }
+        else:
+            conn.commit()
+            return {
+                "status": "ok",
+                "rows_affected": cursor.rowcount,
+            }
+    except pyodbc.Error as e:
+        return {"error": f"SQL error: {e}"}
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+async def _ensure_sql() -> dict | None:
+    if not _has_pyodbc:
+        return {
+            "error": (
+                "pyodbc is not installed. "
+                "Install it with: pip install pyodbc. "
+                "The IBM i Access ODBC driver is also required."
+            )
+        }
+
+    cfg = _config.resolve_sql()
+    if not cfg["host"]:
+        return {"error": "No host configured. Set IBMI_HOST or IBMI_HOST_SQL."}
+    if not cfg["user"]:
+        return {"error": "Credentials required. Set IBMI_USER or IBMI_USER_SQL."}
+    return None
+
+
+@mcp.tool()
+async def execute_sql(statement: str) -> dict:
+    """Execute a SQL statement on the IBM i.
+
+    This tool runs any SQL statement including SELECT, INSERT, UPDATE, DELETE,
+    CREATE, DROP, and other DDL/DML. Use with caution — statements that modify
+    data or schema will be executed as provided.
+
+    Args:
+        statement: The SQL statement to execute.
+
+    Returns query results with columns and rows for SELECT statements,
+    or status with rows_affected for other statements.
+    """
+    err = await _ensure_sql()
+    if err:
+        return err
+
+    conn_str = _build_connection_string()
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, partial(_do_execute_sql, conn_str, statement))
+
+
+# ── Internal helpers ─────────────────────────────────────────────────────
+
+
 def _move_to_next_field(forward: bool = True) -> None:
-    """Move cursor to the next/previous input field (Tab/Backtab behavior)."""
     if _session is None:
         return
 
