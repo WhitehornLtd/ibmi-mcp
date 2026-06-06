@@ -9,13 +9,13 @@ ibmi-mcp is an MCP server that lets AI Agents like Claude interact with IBM i th
 Install and register with Claude Code:
 
 ```bash
-claude mcp add ibmi-5250 -- uvx ibmi-mcp
+claude mcp add ibmi-mcp -- uvx ibmi-mcp
 ```
 
 This requires the connection environment variables to be set in your shell profile. You can also pass them inline with `-e` flags:
 
 ```bash
-claude mcp add ibmi-5250 \
+claude mcp add ibmi-mcp \
   -e IBMI_HOST=myhost.example.com \
   -e IBMI_USER=myuser \
   -e IBMI_PASSWORD=mypassword \

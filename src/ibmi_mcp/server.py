@@ -19,7 +19,7 @@ try:
 except ImportError:
     _has_pyodbc = False
 
-mcp = FastMCP("ibmi-5250")
+mcp = FastMCP("ibmi-mcp")
 
 _session: Tn5250Session | None = None
 _transport: FileTransport | None = None
