@@ -6,7 +6,7 @@ ibmi-mcp is an MCP server that lets AI Agents like Claude interact with IBM i th
 
 ## Installation
 
-Install and register with Claude Code:
+Register with Claude Code:
 
 ```bash
 claude mcp add ibmi-mcp -- uvx ibmi-mcp
@@ -24,13 +24,22 @@ claude mcp add ibmi-mcp \
 
 ### SQL support (optional)
 
-SQL access requires the IBM i Access ODBC driver and `pyodbc`:
+SQL access requires the IBM i Access ODBC driver and the `pyodbc` Python package.
+
+To include `pyodbc` when launching via `uvx`, use the `[sql]` extra:
 
 ```bash
-pip install pyodbc
+claude mcp add ibmi-mcp -- uvx "ibmi-mcp[sql]"
 ```
 
-On macOS, install the ODBC driver via Homebrew:
+Or if you've already registered ibmi-mcp without SQL, you can re-register with:
+
+```bash
+claude mcp remove ibmi-mcp
+claude mcp add ibmi-mcp -- uvx "ibmi-mcp[sql]"
+```
+
+You also need the IBM i Access ODBC driver installed on your system. On macOS:
 
 ```bash
 brew install unixodbc

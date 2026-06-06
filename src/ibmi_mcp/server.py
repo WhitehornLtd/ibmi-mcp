@@ -378,7 +378,7 @@ async def _ensure_sql() -> dict | None:
         return {
             "error": (
                 "pyodbc is not installed. "
-                "Install it with: pip install pyodbc. "
+                "Install ibmi-mcp with the sql extra: uvx \"ibmi-mcp[sql]\". "
                 "The IBM i Access ODBC driver is also required."
             )
         }
