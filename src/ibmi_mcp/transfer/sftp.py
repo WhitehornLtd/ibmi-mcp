@@ -118,10 +118,12 @@ class SftpTransport(FileTransport):
                 return {"error": f"File error: {e}"}
         return {"error": "Download failed after reconnect"}
 
-    async def forward_local_port(self, remote_host: str, remote_port: int) -> int:
+    async def forward_local_port(
+        self, remote_host: str, remote_port: int, local_port: int = 0
+    ) -> int:
         if self._tunnel_listener is not None:
             self._tunnel_listener.close()
         self._tunnel_listener = await self._conn.forward_local_port(
-            "", 0, remote_host, remote_port
+            "", local_port, remote_host, remote_port
         )
         return self._tunnel_listener.get_port()

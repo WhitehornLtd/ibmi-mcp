@@ -23,5 +23,7 @@ class FileTransport(ABC):
     @abstractmethod
     async def download(self, remote_path: str, local_path: str) -> dict: ...
 
-    async def forward_local_port(self, remote_host: str, remote_port: int) -> int:
+    async def forward_local_port(
+        self, remote_host: str, remote_port: int, local_port: int = 0
+    ) -> int:
         raise NotImplementedError

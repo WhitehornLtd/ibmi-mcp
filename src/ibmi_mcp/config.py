@@ -35,6 +35,7 @@ class IBMiConfig(BaseSettings):
     # SSH tunnel settings
     ssh_tunnel: bool = False
     ssh_tunnel_5250: bool | None = None
+    ssh_tunnel_sql: bool | None = None
 
     # SQL-specific overrides
     host_sql: str = ""
@@ -71,4 +72,9 @@ class IBMiConfig(BaseSettings):
     def use_tunnel_5250(self) -> bool:
         if self.ssh_tunnel_5250 is not None:
             return self.ssh_tunnel_5250
+        return self.ssh_tunnel
+
+    def use_tunnel_sql(self) -> bool:
+        if self.ssh_tunnel_sql is not None:
+            return self.ssh_tunnel_sql
         return self.ssh_tunnel

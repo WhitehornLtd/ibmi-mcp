@@ -327,11 +327,12 @@ def _odbc_quote(value: str) -> str:
     return value
 
 
-def _build_connection_string() -> str:
+def _build_connection_string(host_override: str | None = None) -> str:
     cfg = _config.resolve_sql()
+    host = host_override or cfg["host"]
     parts = [
         "DRIVER={IBM i Access ODBC Driver}",
-        f"SYSTEM={_odbc_quote(cfg['host'])}",
+        f"SYSTEM={_odbc_quote(host)}",
         f"UID={_odbc_quote(cfg['user'])}",
         f"PWD={_odbc_quote(cfg['password'])}",
     ]
@@ -409,7 +410,21 @@ async def execute_sql(statement: str) -> dict:
     if err:
         return err
 
-    conn_str = _build_connection_string()
+    host_override = None
+    if _config.use_tunnel_sql():
+        transport = await _ensure_transport()
+        if isinstance(transport, dict):
+            return transport
+        cfg = _config.resolve_sql()
+        try:
+            await transport.forward_local_port(
+                cfg["host"], cfg["port"], local_port=cfg["port"]
+            )
+            host_override = "127.0.0.1"
+        except Exception as e:
+            return {"error": f"SSH tunnel failed: {e}"}
+
+    conn_str = _build_connection_string(host_override)
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, partial(_do_execute_sql, conn_str, statement))
 

@@ -24,22 +24,9 @@ claude mcp add ibmi-mcp \
 
 ### SQL support (optional)
 
-SQL access requires the IBM i Access ODBC driver and the `pyodbc` Python package.
+SQL access requires system-level ODBC libraries and the IBM i Access ODBC driver, installed **before** registering ibmi-mcp.
 
-To include `pyodbc` when launching via `uvx`, use the `[sql]` extra:
-
-```bash
-claude mcp add ibmi-mcp -- uvx "ibmi-mcp[sql]"
-```
-
-Or if you've already registered ibmi-mcp without SQL, you can re-register with:
-
-```bash
-claude mcp remove ibmi-mcp
-claude mcp add ibmi-mcp -- uvx "ibmi-mcp[sql]"
-```
-
-You also need the IBM i Access ODBC driver installed on your system. On macOS:
+#### macOS
 
 ```bash
 brew install unixodbc
@@ -47,7 +34,30 @@ brew tap ibm/iaccess https://public.dhe.ibm.com/software/ibmi/products/odbc/maco
 brew install ibm-iaccess
 ```
 
-The 5250 terminal and file transfer features work without these dependencies.
+#### Linux (Debian/Ubuntu)
+
+```bash
+sudo apt-get install unixodbc unixodbc-dev
+```
+
+Then install the IBM i Access ODBC driver from [IBM's download page](https://www.ibm.com/support/pages/ibm-i-access-client-solutions).
+
+#### After installing ODBC dependencies
+
+Register ibmi-mcp with the `[sql]` extra to include the `pyodbc` Python package:
+
+```bash
+claude mcp add ibmi-mcp -- uvx "ibmi-mcp[sql]"
+```
+
+Or if you've already registered ibmi-mcp without SQL, re-register with:
+
+```bash
+claude mcp remove ibmi-mcp
+claude mcp add ibmi-mcp -- uvx "ibmi-mcp[sql]"
+```
+
+The 5250 terminal and file transfer features work without any of these dependencies.
 
 ## Configuration
 
@@ -65,6 +75,7 @@ Global settings apply to all protocols. Protocol-specific overrides (e.g., `IBMI
 | `IBMI_TERMINAL_TYPE` | Terminal type | No | IBM-3179-2 |
 | `IBMI_SSH_TUNNEL` | Tunnel traffic through SSH | No | false |
 | `IBMI_SSH_TUNNEL_5250` | Override tunnel for 5250 only | No | — |
+| `IBMI_SSH_TUNNEL_SQL` | Override tunnel for SQL only | No | — |
 | `IBMI_SSH_PORT` | SSH port | No | 22 |
 | `IBMI_SSH_KEY_FILE` | Path to SSH private key | No | — |
 | `IBMI_SSH_KNOWN_HOSTS` | Path to known_hosts file | No | — |
