@@ -7,6 +7,19 @@ from ibmi_mcp.tn5250.constants import COLS_24x80, ROWS_24x80
 from ibmi_mcp.tn5250.field import ScreenField
 
 
+def _function_key_number(aid: int) -> int | None:
+    """The function-key number an AID code stands for, or None if it is not one.
+
+    Only the 24 function keys carry a command-key switch; Enter and the rest
+    always transmit.
+    """
+    if 0x31 <= aid <= 0x3C:      # F1-F12
+        return aid - 0x30
+    if 0xB1 <= aid <= 0xBC:      # F13-F24
+        return aid - 0xB0 + 12
+    return None
+
+
 class ScreenBuffer:
     def __init__(self, rows: int = ROWS_24x80, cols: int = COLS_24x80):
         self.rows = rows
@@ -18,6 +31,9 @@ class ScreenBuffer:
         self.modified_positions: set[int] = set()
         self.cursor_row = 0
         self.cursor_col = 0
+        # Start of Header data. Bytes 4-6 hold the command-key switch mask that
+        # says which keys must not transmit field data.
+        self.header_data: bytes = b""
 
     def clear(self) -> None:
         self.buffer = [" "] * self.size
@@ -26,6 +42,25 @@ class ScreenBuffer:
         self.modified_positions.clear()
         self.cursor_row = 0
         self.cursor_col = 0
+        self.header_data = b""
+
+    def sends_data_for_aid(self, aid: int) -> bool:
+        """Whether a device would transmit field data for this AID key.
+
+        Command-attention keys are marked by a set bit in the SOH command-key
+        switch mask: F1-F8 in header byte 6, F9-F16 in byte 5, F17-F24 in byte
+        4, least-significant bit first within each group. A header too short to
+        hold the mask means every key transmits.
+        """
+        if len(self.header_data) <= 6:
+            return True
+
+        key = _function_key_number(aid)
+        if key is None:
+            return True
+
+        group, offset = divmod(key - 1, 8)
+        return (self.header_data[6 - group] & (1 << offset)) == 0
 
     def set_char(self, pos: int, char: str, attr: int = 0) -> None:
         if 0 <= pos < self.size:

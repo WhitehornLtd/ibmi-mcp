@@ -181,6 +181,9 @@ def parse_write_to_display(data: bytes, screen: ScreenBuffer, codepage: str = "c
             if pos + 1 >= length:
                 break
             header_len = data[pos + 1]
+            # Bytes 4-6 carry the command-key switch mask, which decides
+            # whether a given key transmits field data.
+            screen.header_data = bytes(data[pos + 2:pos + 2 + header_len])
             pos += 2 + header_len
 
         elif byte == ORDER_TD:
@@ -277,6 +280,12 @@ def build_response(screen: ScreenBuffer, aid: int, codepage: str = "cp037") -> b
     buf.append(screen.cursor_row + 1)
     buf.append(screen.cursor_col + 1)
     buf.append(aid)
+
+    # A command-attention key reports only which key was pressed; the operator's
+    # typed data stays in the device and never reaches the host.
+    if not screen.sends_data_for_aid(aid):
+        screen.modified_positions.clear()
+        return bytes(buf)
 
     for field in screen.fields:
         if field.ffw1 & 0x08:  # MDT bit set
