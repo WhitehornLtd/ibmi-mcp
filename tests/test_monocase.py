@@ -61,7 +61,7 @@ class TestMonocaseField:
         # Position cursor on the field
         session._screen.set_cursor(4, 24)
 
-        asyncio.get_event_loop().run_until_complete(session.type_keys("hello"))
+        asyncio.run(session.type_keys("hello"))
 
         value = session._screen.get_field_value(session._screen.fields[0])
         assert value.rstrip() == "HELLO"
@@ -72,7 +72,7 @@ class TestMonocaseField:
         session._screen = self._make_screen_with_normal_field()
         session._screen.set_cursor(4, 24)
 
-        asyncio.get_event_loop().run_until_complete(session.type_keys("Hello"))
+        asyncio.run(session.type_keys("Hello"))
 
         value = session._screen.get_field_value(session._screen.fields[0])
         assert value.rstrip() == "Hello"
@@ -83,7 +83,7 @@ class TestMonocaseField:
         session._screen = self._make_screen_with_monocase_field()
         session._screen.set_cursor(4, 24)
 
-        asyncio.get_event_loop().run_until_complete(session.type_keys("WORLD"))
+        asyncio.run(session.type_keys("WORLD"))
 
         value = session._screen.get_field_value(session._screen.fields[0])
         assert value.rstrip() == "WORLD"
@@ -94,7 +94,7 @@ class TestMonocaseField:
         session._screen = self._make_screen_with_monocase_field()
         session._screen.set_cursor(4, 24)
 
-        asyncio.get_event_loop().run_until_complete(session.type_keys("ab1@z"))
+        asyncio.run(session.type_keys("ab1@z"))
 
         value = session._screen.get_field_value(session._screen.fields[0])
         assert value.rstrip() == "AB1@Z"
@@ -121,11 +121,11 @@ class TestMonocaseWithTwoFields:
 
         # Type in username field (monocase)
         session._screen.set_cursor(4, 24)
-        asyncio.get_event_loop().run_until_complete(session.type_keys("testuser"))
+        asyncio.run(session.type_keys("testuser"))
 
         # Type in password field (normal)
         session._screen.set_cursor(5, 24)
-        asyncio.get_event_loop().run_until_complete(session.type_keys("testpassword123"))
+        asyncio.run(session.type_keys("testpassword123"))
 
         username = session._screen.get_field_value(session._screen.fields[0]).rstrip()
         password = session._screen.get_field_value(session._screen.fields[1]).rstrip()

@@ -57,6 +57,29 @@ class ScreenField(BaseModel):
     def field_type(self) -> str:
         return SHIFT_NAMES.get(self.ffw1 & FFW1_SHIFT_MASK, "alpha_shift")
 
+    def permits(self, char: str) -> bool:
+        """Whether the field's keyboard shift allows this character to be keyed.
+
+        A 5250 device refuses a disallowed character and inhibits the keyboard
+        rather than transmitting it, so data the shift forbids can never reach
+        the host from a real terminal.
+
+        The sign of a signed-numeric field is not keyed into the field itself —
+        it is set by a field-exit key — so only digits are accepted here.
+        """
+        shift = self.ffw1 & FFW1_SHIFT_MASK
+
+        if shift in (FFW1_ALPHA_SHIFT, FFW1_NUMERIC_SHIFT, FFW1_KATA):
+            return True
+        if shift == FFW1_ALPHA_ONLY:
+            return char.isalpha() or char in ",.- "
+        if shift == FFW1_NUMERIC_ONLY:
+            return char.isdigit() or char in ",.- "
+        if shift in (FFW1_DIGITS_ONLY, FFW1_SIGNED_NUMERIC):
+            return char.isdigit()
+        # I/O-only fields are written by a device, never by the keyboard.
+        return False
+
     def set_modified(self) -> None:
         self.modified = True
         self.ffw1 |= FFW1_MDT

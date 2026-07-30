@@ -22,7 +22,7 @@ class TestProcessUntilUnlockedTimeout:
         session._stream.read_frame = hang_forever
         session._keyboard_locked = True
 
-        asyncio.get_event_loop().run_until_complete(
+        asyncio.run(
             session._process_until_unlocked(timeout=0.1)
         )
 
@@ -46,7 +46,7 @@ class TestProcessUntilUnlockedTimeout:
         session._stream.read_frame = AsyncMock(return_value=invite_frame)
         session._keyboard_locked = True
 
-        asyncio.get_event_loop().run_until_complete(
+        asyncio.run(
             session._process_until_unlocked(timeout=1.0)
         )
 
@@ -64,7 +64,7 @@ class TestProcessUntilUnlockedTimeout:
         session._stream.write_frame = AsyncMock()
         session._keyboard_locked = False
 
-        asyncio.get_event_loop().run_until_complete(
+        asyncio.run(
             session.send_aid("enter")
         )
 

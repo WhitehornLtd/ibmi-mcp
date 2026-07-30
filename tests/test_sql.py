@@ -1,6 +1,6 @@
 """Tests for SQL execution."""
 
-# TODO: migrate from deprecated asyncio.get_event_loop().run_until_complete() to asyncio.run()
+# TODO: migrate from deprecated asyncio.run() to asyncio.run()
 import asyncio
 from unittest.mock import MagicMock, patch
 
@@ -60,7 +60,7 @@ class TestEnsureSql:
         original = server._has_pyodbc
         server._has_pyodbc = False
         try:
-            result = asyncio.get_event_loop().run_until_complete(server._ensure_sql())
+            result = asyncio.run(server._ensure_sql())
             assert "error" in result
             assert "pyodbc" in result["error"]
         finally:
@@ -71,7 +71,7 @@ class TestEnsureSql:
         original = server._has_pyodbc
         server._has_pyodbc = True
         try:
-            result = asyncio.get_event_loop().run_until_complete(server._ensure_sql())
+            result = asyncio.run(server._ensure_sql())
             assert "error" in result
             assert "host" in result["error"].lower()
         finally:
@@ -82,7 +82,7 @@ class TestEnsureSql:
         original = server._has_pyodbc
         server._has_pyodbc = True
         try:
-            result = asyncio.get_event_loop().run_until_complete(server._ensure_sql())
+            result = asyncio.run(server._ensure_sql())
             assert "error" in result
             assert "credentials" in result["error"].lower()
         finally:
@@ -93,7 +93,7 @@ class TestEnsureSql:
         original = server._has_pyodbc
         server._has_pyodbc = True
         try:
-            result = asyncio.get_event_loop().run_until_complete(server._ensure_sql())
+            result = asyncio.run(server._ensure_sql())
             assert result is None
         finally:
             server._has_pyodbc = original

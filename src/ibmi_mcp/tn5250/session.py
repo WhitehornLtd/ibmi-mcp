@@ -16,7 +16,9 @@ from ibmi_mcp.tn5250.commands import (
 from ibmi_mcp.tn5250.constants import (
     CMD_CLEAR_FORMAT_TABLE,
     CMD_CLEAR_UNIT,
+    CMD_RESTORE_SCREEN,
     CMD_ROLL,
+    CMD_SAVE_SCREEN,
     CMD_WRITE_ERROR_CODE,
     CMD_WRITE_STRUCTURED_FIELD,
     CMD_WRITE_TO_DISPLAY,
@@ -50,6 +52,22 @@ class SessionState(Enum):
     WAITING = "waiting"
 
 
+class KeyboardInhibitedError(RuntimeError):
+    """A keystroke the field's keyboard shift does not permit.
+
+    Raised instead of transmitting, so a probe cannot reach the host with data
+    no real 5250 terminal could have sent.
+    """
+
+
+# Commands that paint the display. Only these are retained as the screen image,
+# so a Save Screen reply replays the picture without re-issuing input requests.
+_PAINTING_COMMANDS = frozenset(
+    {CMD_CLEAR_UNIT, CMD_CLEAR_FORMAT_TABLE, CMD_WRITE_TO_DISPLAY,
+     CMD_WRITE_ERROR_CODE, CMD_ROLL}
+)
+
+
 class Tn5250Session:
     def __init__(
         self,
@@ -81,6 +99,11 @@ class Tn5250Session:
         self._signed_in = False
         self._timed_out = False
         self.response_timeout = 30.0
+        # The host may ask for the current screen back so it can restore it
+        # later. Keeping the commands that painted it lets us return an image
+        # the host can replay verbatim.
+        self._pending_save_screen = False
+        self._screen_image = bytearray()
 
     @property
     def state(self) -> SessionState:
@@ -153,6 +176,18 @@ class Tn5250Session:
         # Check if current field is monocase (FFW2 bit 0x20)
         field = self._screen.get_field_at_cursor()
         monocase = field is not None and bool(field.ffw2 & 0x20)
+
+        # A device inhibits the keyboard on the first disallowed character and
+        # accepts nothing, so validate the whole run before touching the screen.
+        if field is not None:
+            for ch in text:
+                candidate = ch.upper() if monocase else ch
+                if not field.permits(candidate):
+                    raise KeyboardInhibitedError(
+                        f"Keyboard inhibited: {ch!r} cannot be keyed into a "
+                        f"{field.field_type} field at row {field.row + 1}, "
+                        f"col {field.col + 1}"
+                    )
 
         for i, ch in enumerate(text):
             pos = cursor + i
@@ -374,6 +409,9 @@ class Tn5250Session:
                 if self._pending_query:
                     await self._send_query_reply()
                     self._pending_query = False
+                if self._pending_save_screen:
+                    await self._send_save_screen_reply()
+                    self._pending_save_screen = False
         except asyncio.IncompleteReadError:
             self._keyboard_locked = False
             raise ConnectionError("5250 connection closed unexpectedly")
@@ -417,10 +455,13 @@ class Tn5250Session:
                 self._unlock_event.set()
 
         elif opcode == OP_SAVE_SCREEN:
-            pass  # TODO: implement screen save stack
+            # The host blocks until the image comes back. Leaving this
+            # unanswered desynchronizes the session by one exchange.
+            self._pending_save_screen = True
 
         elif opcode == OP_RESTORE_SCREEN:
-            pass  # TODO: implement screen restore
+            # Carries a previously saved image; no reply is required.
+            self._parse_commands(data)
 
         elif opcode == OP_READ_IMMEDIATE:
             self._keyboard_locked = False
@@ -447,11 +488,16 @@ class Tn5250Session:
         pos = 0
         while pos < len(data):
             if data[pos] == ESC:
+                cmd_start = pos
                 pos += 1
                 if pos >= len(data):
                     break
                 cmd = data[pos]
                 pos += 1
+
+                if cmd == CMD_CLEAR_UNIT:
+                    # A new picture starts here; the old image no longer applies.
+                    self._screen_image.clear()
 
                 if cmd == CMD_WRITE_TO_DISPLAY:
                     consumed = parse_write_to_display(data[pos:], self._screen, self.codepage)
@@ -481,10 +527,36 @@ class Tn5250Session:
                         while pos < len(data) and data[pos] != ESC:
                             pos += 1
 
+                elif cmd == CMD_RESTORE_SCREEN:
+                    # Introduces a saved image; the commands that make it up
+                    # follow directly and are parsed by the next iterations.
+                    continue
+
+                elif cmd == CMD_SAVE_SCREEN:
+                    self._pending_save_screen = True
+
                 else:
                     logger.debug(f"Unknown command: {cmd:#x}")
+
+                if cmd in _PAINTING_COMMANDS:
+                    self._screen_image.extend(data[cmd_start:pos])
             else:
                 pos += 1
+
+    def _build_save_screen_data(self) -> bytes:
+        """The screen image the host asked to save.
+
+        Prefixed with ESC + Restore Screen so the host can hand the same bytes
+        straight back when it restores, per RFC 1205's
+        ``...0400 0004 0412 <Screen Image>`` reply form.
+        """
+        return bytes([ESC, CMD_RESTORE_SCREEN]) + bytes(self._screen_image)
+
+    async def _send_save_screen_reply(self) -> None:
+        frame = self._build_gds_frame(
+            self._build_save_screen_data(), opcode=OP_SAVE_SCREEN
+        )
+        await self._stream.write_frame(frame)
 
     async def _send_query_reply(self) -> None:
         reply_data = self._build_query_reply()

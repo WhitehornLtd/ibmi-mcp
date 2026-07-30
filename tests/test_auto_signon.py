@@ -271,7 +271,7 @@ class TestSignOnState:
         session._screen = _make_sign_on_screen()
         session.send_aid = AsyncMock()
 
-        asyncio.get_event_loop().run_until_complete(session._auto_signon())
+        asyncio.run(session._auto_signon())
 
         assert session._signed_in is True
 
@@ -282,7 +282,7 @@ class TestSignOnState:
         session._signed_in = True
         session.send_aid = AsyncMock()
 
-        asyncio.get_event_loop().run_until_complete(session._auto_signon())
+        asyncio.run(session._auto_signon())
 
         session.send_aid.assert_not_called()
 
@@ -296,7 +296,7 @@ class TestSignOnExecution:
         session._screen = _make_sign_on_screen()
         session.send_aid = AsyncMock()
 
-        asyncio.get_event_loop().run_until_complete(session._auto_signon())
+        asyncio.run(session._auto_signon())
 
         username_val = session._screen.get_field_value(session._screen.fields[0]).rstrip()
         password_val = session._screen.get_field_value(session._screen.fields[1]).rstrip()
@@ -309,7 +309,7 @@ class TestSignOnExecution:
         session._screen = _make_sign_on_screen()
         session.send_aid = AsyncMock()
 
-        asyncio.get_event_loop().run_until_complete(session._auto_signon())
+        asyncio.run(session._auto_signon())
 
         session.send_aid.assert_called_once_with("enter")
 
@@ -319,7 +319,7 @@ class TestSignOnExecution:
         session._screen = _make_standard_signon_screen()
         session.send_aid = AsyncMock()
 
-        asyncio.get_event_loop().run_until_complete(session._auto_signon())
+        asyncio.run(session._auto_signon())
 
         fields = session._screen.get_input_fields()
         username_val = session._screen.get_field_value(fields[0]).rstrip()
@@ -335,7 +335,7 @@ class TestSignOnExecution:
         session._screen = _make_sign_on_screen()
         session.send_aid = AsyncMock()
 
-        asyncio.get_event_loop().run_until_complete(session._auto_signon())
+        asyncio.run(session._auto_signon())
 
         session.send_aid.assert_not_called()
         assert session._signed_in is False

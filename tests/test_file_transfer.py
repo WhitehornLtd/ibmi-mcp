@@ -1,6 +1,6 @@
 """Tests for file transfer transport."""
 
-# TODO: migrate from deprecated asyncio.get_event_loop().run_until_complete() to asyncio.run()
+# TODO: migrate from deprecated asyncio.run() to asyncio.run()
 import asyncio
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -33,7 +33,7 @@ class TestSftpTransportConnect:
         mock_conn.start_sftp_client = AsyncMock(return_value=MagicMock())
         mock_asyncssh.connect = AsyncMock(return_value=mock_conn)
 
-        asyncio.get_event_loop().run_until_complete(transport.connect())
+        asyncio.run(transport.connect())
 
         call_kwargs = mock_asyncssh.connect.call_args[1]
         assert call_kwargs["host"] == "sftp.example.com"
@@ -48,7 +48,7 @@ class TestSftpUpload:
         transport._conn = MagicMock()
         transport._sftp = AsyncMock()
 
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             transport.upload("/nonexistent/path.txt", "/remote/path.txt")
         )
         assert "error" in result
@@ -65,7 +65,7 @@ class TestSftpUpload:
         transport._sftp = AsyncMock()
         transport._sftp.put = AsyncMock()
 
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             transport.upload(str(local_file), "/remote/test.txt")
         )
         assert result["status"] == "uploaded"
@@ -88,7 +88,7 @@ class TestSftpDownload:
 
         transport._sftp.get = fake_get
 
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             transport.download("/remote/file.txt", str(local_file))
         )
         assert result["status"] == "downloaded"
@@ -127,7 +127,7 @@ class TestSftpRetry:
         mock_new_conn.start_sftp_client = AsyncMock(return_value=mock_sftp)
 
         with patch("asyncssh.connect", AsyncMock(return_value=mock_new_conn)):
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 transport.upload(str(local_file), "/remote/test.txt")
             )
         assert result["status"] == "uploaded"
@@ -142,7 +142,7 @@ class TestSftpPortForward:
         transport._conn = AsyncMock()
         transport._conn.forward_local_port = AsyncMock(return_value=mock_listener)
 
-        port = asyncio.get_event_loop().run_until_complete(
+        port = asyncio.run(
             transport.forward_local_port("remote", 23)
         )
         assert port == 54321
@@ -155,6 +155,6 @@ class TestSftpPortForward:
         transport._conn = AsyncMock()
         transport._sftp = MagicMock()
 
-        asyncio.get_event_loop().run_until_complete(transport.disconnect())
+        asyncio.run(transport.disconnect())
         mock_listener.close.assert_called_once()
         assert transport._tunnel_listener is None
