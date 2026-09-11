@@ -124,6 +124,7 @@ def parse_write_to_display(data: bytes, screen: ScreenBuffer, codepage: str = "c
 
             ffw1 = ffw2 = 0
             fcw1 = fcw2 = 0
+            fcws: list[tuple[int, int]] = []
             attr = 0
 
             if (first_byte & 0xE0) != 0x20:
@@ -134,10 +135,14 @@ def parse_write_to_display(data: bytes, screen: ScreenBuffer, codepage: str = "c
                 ffw2 = data[pos]
                 pos += 1
 
-                # Read FCW pairs until we hit an attribute byte (0x20-0x3F range)
+                # Read FCW pairs until we hit an attribute byte (0x20-0x3F range).
+                # Every pair is kept: a field may carry several, and the ones
+                # before the last are not noise — they are the field's other
+                # control words.
                 while pos + 1 < length and (data[pos] & 0xE0) != 0x20:
                     fcw1 = data[pos]
                     fcw2 = data[pos + 1]
+                    fcws.append((fcw1, fcw2))
                     pos += 2
 
                 # Current byte is the attribute
@@ -172,6 +177,7 @@ def parse_write_to_display(data: bytes, screen: ScreenBuffer, codepage: str = "c
                 ffw2=ffw2,
                 fcw1=fcw1,
                 fcw2=fcw2,
+                fcws=tuple(fcws),
             )
             screen.add_field(field)
             pending_field = field

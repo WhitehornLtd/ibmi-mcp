@@ -38,9 +38,27 @@ class ScreenField(BaseModel):
     attr: int = 0
     ffw1: int = 0
     ffw2: int = 0
+    # The LAST field control word pair on the field, kept under the names
+    # callers already use. `fcws` below is the complete list and is what new
+    # code should read.
     fcw1: int = 0
     fcw2: int = 0
+    # Every field control word on this field, in the order the data stream
+    # sent them. A field may carry several; keeping only one discards the
+    # rest before anything can act on them.
+    fcws: tuple[tuple[int, int], ...] = ()
     modified: bool = False
+
+    def fcw(self, fcw_type: int) -> int | None:
+        """The second byte of the first field control word of this type.
+
+        None when the field carries no such word, which is the common case —
+        most fields carry none at all.
+        """
+        for first, second in self.fcws:
+            if first == fcw_type:
+                return second
+        return None
 
     @property
     def is_bypass(self) -> bool:

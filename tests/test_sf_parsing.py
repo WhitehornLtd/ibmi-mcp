@@ -285,3 +285,96 @@ class TestTabNavigation:
         assert len(fields) == 2
         assert fields[0].row == 4
         assert fields[1].row == 5
+
+
+class TestFCWRetention:
+    """Every field control word on a field is kept, not just the last one.
+
+    The parser used to overwrite fcw1/fcw2 inside its read loop, so a field
+    carrying several FCWs arrived with only the final pair and every earlier
+    one was gone before anything could look at it. Nothing that depends on an
+    FCW can be built while the bytes are discarded at parse time.
+    """
+
+    def test_single_fcw_is_retained(self):
+        data = make_wtd_data(
+            sba(5, 24),
+            bytes([ORDER_SF, 0x40, 0x20, 0x84, 0x00, 0x24, 0x00, 0x0A]),
+        )
+        screen = ScreenBuffer()
+        parse_write_to_display(data, screen)
+
+        field = screen.fields[0]
+        assert field.fcws == ((0x84, 0x00),)
+        assert field.attr == 0x24
+        assert field.length == 10
+
+    def test_every_fcw_is_retained_in_order(self):
+        """Three FCWs: only the last survived before."""
+        data = make_wtd_data(
+            sba(5, 24),
+            bytes([ORDER_SF, 0x40, 0x20,
+                   0x81, 0x01,
+                   0x84, 0x02,
+                   0x88, 0x03,
+                   0x24, 0x00, 0x0A]),
+        )
+        screen = ScreenBuffer()
+        parse_write_to_display(data, screen)
+
+        field = screen.fields[0]
+        assert field.fcws == ((0x81, 0x01), (0x84, 0x02), (0x88, 0x03))
+        assert field.attr == 0x24
+        assert field.length == 10
+
+    def test_a_field_with_no_fcw_has_none(self):
+        data = make_wtd_data(
+            sba(5, 24),
+            bytes([ORDER_SF, 0x40, 0x20, 0x24, 0x00, 0x0A]),
+        )
+        screen = ScreenBuffer()
+        parse_write_to_display(data, screen)
+
+        assert screen.fields[0].fcws == ()
+
+    def test_an_output_field_with_no_ffw_has_no_fcw(self):
+        """No FFW means the first byte is the attribute; there is no FCW room."""
+        data = make_wtd_data(
+            sba(3, 2),
+            bytes([ORDER_SF, 0x20, 0x00, 0x05]),
+        )
+        screen = ScreenBuffer()
+        parse_write_to_display(data, screen)
+
+        assert screen.fields[0].fcws == ()
+
+    def test_lookup_finds_an_fcw_by_type(self):
+        data = make_wtd_data(
+            sba(5, 24),
+            bytes([ORDER_SF, 0x40, 0x20,
+                   0x81, 0x01,
+                   0x84, 0x02,
+                   0x24, 0x00, 0x0A]),
+        )
+        screen = ScreenBuffer()
+        parse_write_to_display(data, screen)
+
+        field = screen.fields[0]
+        assert field.fcw(0x84) == 0x02
+        assert field.fcw(0x81) == 0x01
+        assert field.fcw(0x99) is None
+
+    def test_the_legacy_pair_still_reads_as_the_last_fcw(self):
+        """fcw1/fcw2 keep their old meaning so existing callers are unaffected."""
+        data = make_wtd_data(
+            sba(5, 24),
+            bytes([ORDER_SF, 0x40, 0x20,
+                   0x81, 0x01,
+                   0x84, 0x02,
+                   0x24, 0x00, 0x0A]),
+        )
+        screen = ScreenBuffer()
+        parse_write_to_display(data, screen)
+
+        field = screen.fields[0]
+        assert (field.fcw1, field.fcw2) == (0x84, 0x02)
